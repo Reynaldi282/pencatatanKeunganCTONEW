@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProviderType {
+  PASSWORD
+  GOOGLE
+  APPLE
+  MICROSOFT
+  GITHUB
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum BudgetRecurrence {
+  MONTHLY
+  WEEKLY
+  YEARLY
+  CUSTOM
+}
+
+model User {
+  id        String                @id @default(uuid())
+  email     String                @unique
+  name      String?
+  locale    String?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  deletedAt DateTime?
+
+  authProviders  AuthProvider[]
+  refreshTokens  RefreshToken[]
+  categories     Category[]
+  transactions   Transaction[]
+  budgets        Budget[]
+  devices        DeviceSyncMetadata[]
+}
+
+model AuthProvider {
+  id              String           @id @default(uuid())
+  provider        AuthProviderType
+  providerUserId  String
+  accessToken     String?
+  refreshToken    String?
+  userId          String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  revokedAt  DateTime?
+  deviceId   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id          String        @id @default(uuid())
+  name        String
+  type        CategoryType
+  description String?
+  icon        String?
+  userId      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  user         User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@unique([userId, name, type])
+  @@index([type])
+}
+
+model Transaction {
+  id             String                 @id @default(uuid())
+  userId         String
+  categoryId     String
+  amount         Decimal                @db.Decimal(18, 2)
+  currency       String                 @default("USD")
+  occurredAt     DateTime
+  description    String?
+  notes          String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  deletedAt      DateTime?
+  externalId     String?
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category    @relation(fields: [categoryId], references: [id])
+  attachments TransactionAttachment[]
+
+  @@index([userId, occurredAt])
+  @@index([categoryId])
+}
+
+model TransactionAttachment {
+  id             String     @id @default(uuid())
+  transactionId  String
+  url            String
+  contentType    String?
+  metadata       Json?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+}
+
+model Budget {
+  id          String   @id @default(uuid())
+  userId      String
+  categoryId  String?
+  amount      Decimal  @db.Decimal(18, 2)
+  periodStart DateTime
+  periodEnd   DateTime?
+  recurrence  BudgetRecurrence
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model DeviceSyncMetadata {
+  id           String   @id @default(uuid())
+  userId       String
+  deviceId     String
+  lastSyncedAt DateTime?
+  payload      Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+}
