@@ -1,0 +1,11 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Flutter build artifacts
+mobile/build/
+mobile/.dart_tool/
+mobile/.packages
+mobile/pubspec.lock

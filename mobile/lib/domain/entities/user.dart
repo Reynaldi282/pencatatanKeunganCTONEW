@@ -1,0 +1,15 @@
+class User {
+  const User({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.avatarUrl,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String name;
+  final String email;
+  final String? avatarUrl;
+  final DateTime updatedAt;
+}
