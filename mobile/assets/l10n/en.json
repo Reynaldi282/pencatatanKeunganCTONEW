@@ -1,0 +1,8 @@
+{
+  "app_title": "Finance App",
+  "splash_loading": "Loading your finances...",
+  "home_title": "Dashboard",
+  "login_title": "Sign In",
+  "login_button": "Continue",
+  "logout": "Log Out"
+}
