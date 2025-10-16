@@ -16,6 +16,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     startupListenable.value = next;
   });
 
+  ref.onDispose(startupListenable.dispose);
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: SplashPage.routePath,
