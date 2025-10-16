@@ -1,0 +1,1478 @@
+import { OpenAPIV3 } from 'openapi-types';
+
+const bearerAuth: OpenAPIV3.SecuritySchemeObject = {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT'
+};
+
+const timestampProperty: OpenAPIV3.SchemaObject = {
+  type: 'string',
+  format: 'date-time',
+  example: '2024-01-15T09:30:00.000Z'
+};
+
+const monetaryAmount: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['amount', 'currency'],
+  properties: {
+    amount: {
+      type: 'number',
+      format: 'double',
+      example: 123.45
+    },
+    currency: {
+      type: 'string',
+      minLength: 3,
+      maxLength: 3,
+      example: 'USD'
+    }
+  }
+};
+
+const monetaryAmountRef: OpenAPIV3.ReferenceObject = {
+  $ref: '#/components/schemas/MonetaryAmount'
+};
+
+const errorResponse: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['error', 'message', 'statusCode'],
+  properties: {
+    statusCode: {
+      type: 'integer',
+      example: 401,
+      description: 'HTTP status code.'
+    },
+    error: {
+      type: 'string',
+      example: 'Unauthorized',
+      description: 'Short error title.'
+    },
+    message: {
+      type: 'string',
+      example: 'Invalid credentials provided.',
+      description: 'Detailed human-readable error description.'
+    },
+    details: {
+      type: 'array',
+      description: 'Optional validation or domain errors.',
+      items: {
+        type: 'object',
+        required: ['field', 'message'],
+        properties: {
+          field: {
+            type: 'string',
+            description: 'Field or domain object name linked to the issue.'
+          },
+          message: {
+            type: 'string'
+          }
+        }
+      }
+    },
+    traceId: {
+      type: 'string',
+      description: 'Correlation ID to trace error across services.',
+      example: 'b6c8728c-6a62-4a4a-a1b0-58d7df3611cf'
+    }
+  }
+};
+
+const userSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['id', 'email', 'fullName', 'timezone', 'createdAt', 'updatedAt'],
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      example: '8d6c7c82-0af7-4d31-9b84-7d3e1a53aabc'
+    },
+    email: {
+      type: 'string',
+      format: 'email',
+      example: 'jordan@example.com'
+    },
+    fullName: {
+      type: 'string',
+      example: 'Jordan Banks'
+    },
+    timezone: {
+      type: 'string',
+      example: 'America/New_York'
+    },
+    avatarUrl: {
+      type: 'string',
+      format: 'uri',
+      nullable: true,
+      example: 'https://cdn.example.com/avatars/jordan.png'
+    },
+    onboardingCompletedAt: {
+      ...timestampProperty,
+      nullable: true
+    },
+    createdAt: timestampProperty,
+    updatedAt: timestampProperty
+  }
+};
+
+const authTokensSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['accessToken', 'refreshToken', 'expiresIn'],
+  properties: {
+    accessToken: {
+      type: 'string',
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+    },
+    refreshToken: {
+      type: 'string',
+      example: '6d19fbce-5678-4f5e-9923-e8be85c46182'
+    },
+    expiresIn: {
+      type: 'integer',
+      example: 3600,
+      description: 'Access token lifetime in seconds.'
+    },
+    tokenType: {
+      type: 'string',
+      example: 'Bearer'
+    }
+  }
+};
+
+const transactionSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: [
+    'id',
+    'userId',
+    'categoryId',
+    'description',
+    'amount',
+    'status',
+    'type',
+    'postedAt',
+    'createdAt',
+    'updatedAt'
+  ],
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      example: 'af849fdf-6c22-4c67-9ce8-5b7b6a678ea1'
+    },
+    userId: {
+      type: 'string',
+      format: 'uuid',
+      example: '8d6c7c82-0af7-4d31-9b84-7d3e1a53aabc'
+    },
+    categoryId: {
+      type: 'string',
+      format: 'uuid',
+      example: 'a4ec9bb0-6ddc-4ea0-996c-19e54114df9c'
+    },
+    budgetId: {
+      type: 'string',
+      format: 'uuid',
+      nullable: true,
+      example: '63eef8ce-13d9-46bf-8a2d-79a9dee93c2f'
+    },
+    description: {
+      type: 'string',
+      example: 'Grocery run - Trader Joe\'s'
+    },
+    amount: monetaryAmountRef,
+    status: {
+      type: 'string',
+      enum: ['pending', 'posted', 'reconciled', 'void'],
+      example: 'posted'
+    },
+    type: {
+      type: 'string',
+      enum: ['debit', 'credit', 'transfer'],
+      example: 'debit'
+    },
+    merchant: {
+      type: 'string',
+      nullable: true,
+      example: 'Trader Joe\'s'
+    },
+    accountId: {
+      type: 'string',
+      nullable: true,
+      description: 'Internal account identifier linked to the transaction.'
+    },
+    externalId: {
+      type: 'string',
+      nullable: true,
+      description: 'Identifier from upstream provider or bank.'
+    },
+    metadata: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: true
+    },
+    postedAt: timestampProperty,
+    createdAt: timestampProperty,
+    updatedAt: timestampProperty
+  }
+};
+
+const categorySchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['id', 'userId', 'name', 'type', 'createdAt', 'updatedAt'],
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      example: 'a4ec9bb0-6ddc-4ea0-996c-19e54114df9c'
+    },
+    userId: {
+      type: 'string',
+      format: 'uuid',
+      example: '8d6c7c82-0af7-4d31-9b84-7d3e1a53aabc'
+    },
+    name: {
+      type: 'string',
+      example: 'Groceries'
+    },
+    type: {
+      type: 'string',
+      enum: ['expense', 'income', 'transfer'],
+      example: 'expense'
+    },
+    parentCategoryId: {
+      type: 'string',
+      format: 'uuid',
+      nullable: true
+    },
+    color: {
+      type: 'string',
+      example: '#2F855A'
+    },
+    icon: {
+      type: 'string',
+      example: 'shopping_cart'
+    },
+    createdAt: timestampProperty,
+    updatedAt: timestampProperty
+  }
+};
+
+const budgetSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: [
+    'id',
+    'userId',
+    'name',
+    'amount',
+    'period',
+    'startDate',
+    'endDate',
+    'createdAt',
+    'updatedAt'
+  ],
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      example: '63eef8ce-13d9-46bf-8a2d-79a9dee93c2f'
+    },
+    userId: {
+      type: 'string',
+      format: 'uuid',
+      example: '8d6c7c82-0af7-4d31-9b84-7d3e1a53aabc'
+    },
+    name: {
+      type: 'string',
+      example: 'Monthly groceries budget'
+    },
+    description: {
+      type: 'string',
+      example: 'Covers all grocery-related expenses for the household.'
+    },
+    amount: monetaryAmountRef,
+    spent: {
+      type: 'number',
+      format: 'double',
+      example: 250.5
+    },
+    period: {
+      type: 'string',
+      enum: ['weekly', 'monthly', 'quarterly', 'yearly', 'custom'],
+      example: 'monthly'
+    },
+    startDate: {
+      type: 'string',
+      format: 'date',
+      example: '2024-01-01'
+    },
+    endDate: {
+      type: 'string',
+      format: 'date',
+      example: '2024-01-31'
+    },
+    rollover: {
+      type: 'boolean',
+      example: true
+    },
+    categories: {
+      type: 'array',
+      items: {
+        type: 'string',
+        format: 'uuid'
+      }
+    },
+    createdAt: timestampProperty,
+    updatedAt: timestampProperty
+  }
+};
+
+const syncJobSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['id', 'provider', 'status', 'createdAt'],
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      example: '2f71d119-12ab-4d51-a64b-35b92b8775b4'
+    },
+    provider: {
+      type: 'string',
+      example: 'plaid'
+    },
+    status: {
+      type: 'string',
+      enum: ['queued', 'running', 'succeeded', 'failed'],
+      example: 'running'
+    },
+    strategy: {
+      type: 'string',
+      enum: ['full', 'incremental'],
+      example: 'incremental'
+    },
+    startedAt: timestampProperty,
+    finishedAt: timestampProperty,
+    stats: {
+      type: 'object',
+      properties: {
+        transactionsProcessed: {
+          type: 'integer',
+          example: 120
+        },
+        newTransactions: {
+          type: 'integer',
+          example: 24
+        },
+        updatedTransactions: {
+          type: 'integer',
+          example: 7
+        }
+      }
+    },
+    createdAt: timestampProperty,
+    updatedAt: timestampProperty
+  }
+};
+
+const secure: OpenAPIV3.SecurityRequirementObject[] = [{ bearerAuth: [] }];
+
+const openApiDocument: OpenAPIV3.Document = {
+  openapi: '3.0.3',
+  info: {
+    title: 'Finance Sync Platform API',
+    version: '1.0.0',
+    description:
+      'REST API documentation for the Finance Sync Platform covering authentication, user, transaction, category, budget, and sync workflows.'
+  },
+  servers: [
+    {
+      url: 'http://localhost:3000',
+      description: 'Local development server'
+    },
+    {
+      url: 'https://api.finance-sync.example.com',
+      description: 'Production environment'
+    }
+  ],
+  tags: [
+    { name: 'Authentication', description: 'User session and credential management.' },
+    { name: 'Users', description: 'User profile and preferences.' },
+    { name: 'Transactions', description: 'Financial transactions captured from providers.' },
+    { name: 'Categories', description: 'User-defined categorisation for transactions.' },
+    { name: 'Budgets', description: 'Budget planning and tracking.' },
+    { name: 'Sync', description: 'Data ingestion, background sync and provider connections.' }
+  ],
+  security: secure,
+  paths: {
+    '/health': {
+      get: {
+        tags: ['Users'],
+        summary: 'Service health status.',
+        operationId: 'healthCheck',
+        security: [],
+        responses: {
+          '200': {
+            description: 'Service is healthy.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'ok' },
+                    uptime: { type: 'number', example: 123.45 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/auth/register': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Register a new user.',
+        operationId: 'registerUser',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password', 'fullName'],
+                properties: {
+                  email: {
+                    type: 'string',
+                    format: 'email',
+                    example: 'jordan@example.com'
+                  },
+                  password: {
+                    type: 'string',
+                    format: 'password',
+                    minLength: 12,
+                    example: 'Sup3rSecure!'
+                  },
+                  fullName: {
+                    type: 'string',
+                    example: 'Jordan Banks'
+                  },
+                  timezone: {
+                    type: 'string',
+                    example: 'America/New_York'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'User registered successfully.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['user', 'tokens'],
+                  properties: {
+                    user: { $ref: '#/components/schemas/User' },
+                    tokens: { $ref: '#/components/schemas/AuthTokens' }
+                  }
+                }
+              }
+            }
+          },
+          '409': {
+            description: 'Email is already registered.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/auth/login': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Authenticate with email and password.',
+        operationId: 'loginUser',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                  email: {
+                    type: 'string',
+                    format: 'email',
+                    example: 'jordan@example.com'
+                  },
+                  password: {
+                    type: 'string',
+                    format: 'password',
+                    example: 'Sup3rSecure!'
+                  },
+                  device: {
+                    type: 'string',
+                    example: 'MacBook Pro 16-inch'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Authenticated successfully.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['user', 'tokens'],
+                  properties: {
+                    user: { $ref: '#/components/schemas/User' },
+                    tokens: { $ref: '#/components/schemas/AuthTokens' }
+                  }
+                }
+              }
+            }
+          },
+          '401': {
+            description: 'Invalid credentials.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/auth/logout': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Invalidate refresh tokens for the current session.',
+        operationId: 'logoutUser',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['refreshToken'],
+                properties: {
+                  refreshToken: {
+                    type: 'string',
+                    example: '6d19fbce-5678-4f5e-9923-e8be85c46182'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '204': {
+            description: 'Session terminated.'
+          }
+        }
+      }
+    },
+    '/api/auth/refresh': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Exchange a refresh token for a new access token.',
+        operationId: 'refreshTokens',
+        security: [],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['refreshToken'],
+                properties: {
+                  refreshToken: {
+                    type: 'string',
+                    example: '6d19fbce-5678-4f5e-9923-e8be85c46182'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'New tokens issued.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AuthTokens' }
+              }
+            }
+          },
+          '401': {
+            description: 'Refresh token is invalid or expired.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/auth/change-password': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Change password for the authenticated user.',
+        operationId: 'changePassword',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['currentPassword', 'newPassword'],
+                properties: {
+                  currentPassword: {
+                    type: 'string',
+                    format: 'password',
+                    example: 'Sup3rSecure!'
+                  },
+                  newPassword: {
+                    type: 'string',
+                    format: 'password',
+                    example: 'EvenM0reSecure!!'
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '204': {
+            description: 'Password updated successfully.'
+          },
+          '400': {
+            description: 'New password fails validation.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          '401': {
+            description: 'Current password incorrect.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/users': {
+      get: {
+        tags: ['Users'],
+        summary: 'List users (admin).',
+        operationId: 'listUsers',
+        parameters: [
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 }
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            schema: { type: 'string' },
+            description: 'Pagination cursor.'
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'List of users.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['data', 'nextCursor'],
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/User' }
+                    },
+                    nextCursor: {
+                      type: 'string',
+                      nullable: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/users/me': {
+      get: {
+        tags: ['Users'],
+        summary: 'Retrieve the authenticated user profile.',
+        operationId: 'getCurrentUser',
+        responses: {
+          '200': {
+            description: 'Profile returned.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/User' }
+              }
+            }
+          }
+        }
+      },
+      patch: {
+        tags: ['Users'],
+        summary: 'Update the authenticated user profile.',
+        operationId: 'updateCurrentUser',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  fullName: { type: 'string' },
+                  timezone: { type: 'string' },
+                  avatarUrl: { type: 'string', format: 'uri' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Profile updated.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/User' }
+              }
+            }
+          },
+          '400': {
+            description: 'Validation error.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/users/{userId}': {
+      get: {
+        tags: ['Users'],
+        summary: 'Fetch a user by ID (admin).',
+        operationId: 'getUserById',
+        parameters: [
+          {
+            name: 'userId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'User found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/User' }
+              }
+            }
+          },
+          '404': {
+            description: 'User not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/transactions': {
+      get: {
+        tags: ['Transactions'],
+        summary: 'List transactions for the authenticated user.',
+        operationId: 'listTransactions',
+        parameters: [
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'categoryId', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'budgetId', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+          { name: 'pageSize', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 200, default: 50 } },
+          {
+            name: 'sort',
+            in: 'query',
+            schema: { type: 'string', enum: ['postedAt', '-postedAt', 'amount', '-amount'] }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Transactions returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['data', 'page', 'pageSize', 'total'],
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Transaction' }
+                    },
+                    page: { type: 'integer', example: 1 },
+                    pageSize: { type: 'integer', example: 50 },
+                    total: { type: 'integer', example: 315 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        tags: ['Transactions'],
+        summary: 'Create a new transaction.',
+        operationId: 'createTransaction',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['categoryId', 'description', 'amount', 'postedAt', 'type'],
+                properties: {
+                  categoryId: { type: 'string', format: 'uuid' },
+                  budgetId: { type: 'string', format: 'uuid' },
+                  description: { type: 'string' },
+                  merchant: { type: 'string' },
+                  amount: monetaryAmountRef,
+                  status: {
+                    type: 'string',
+                    enum: ['pending', 'posted', 'reconciled', 'void'],
+                    default: 'posted'
+                  },
+                  type: {
+                    type: 'string',
+                    enum: ['debit', 'credit', 'transfer']
+                  },
+                  postedAt: { type: 'string', format: 'date-time' },
+                  metadata: { type: 'object', additionalProperties: true }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Transaction created.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Transaction' }
+              }
+            }
+          },
+          '400': {
+            description: 'Validation error.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/transactions/{transactionId}': {
+      get: {
+        tags: ['Transactions'],
+        summary: 'Retrieve a transaction.',
+        operationId: 'getTransaction',
+        parameters: [
+          {
+            name: 'transactionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Transaction returned.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Transaction' }
+              }
+            }
+          },
+          '404': {
+            description: 'Transaction not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      patch: {
+        tags: ['Transactions'],
+        summary: 'Update an existing transaction.',
+        operationId: 'updateTransaction',
+        parameters: [
+          {
+            name: 'transactionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  categoryId: { type: 'string', format: 'uuid' },
+                  budgetId: { type: 'string', format: 'uuid' },
+                  description: { type: 'string' },
+                  merchant: { type: 'string' },
+                  amount: monetaryAmountRef,
+                  status: {
+                    type: 'string',
+                    enum: ['pending', 'posted', 'reconciled', 'void']
+                  },
+                  type: {
+                    type: 'string',
+                    enum: ['debit', 'credit', 'transfer']
+                  },
+                  postedAt: { type: 'string', format: 'date-time' },
+                  metadata: { type: 'object', additionalProperties: true }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Transaction updated.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Transaction' }
+              }
+            }
+          },
+          '404': {
+            description: 'Transaction not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        tags: ['Transactions'],
+        summary: 'Delete a transaction.',
+        operationId: 'deleteTransaction',
+        parameters: [
+          {
+            name: 'transactionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '204': {
+            description: 'Transaction deleted.'
+          },
+          '404': {
+            description: 'Transaction not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/categories': {
+      get: {
+        tags: ['Categories'],
+        summary: 'List categories.',
+        operationId: 'listCategories',
+        responses: {
+          '200': {
+            description: 'Categories returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Category' }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        tags: ['Categories'],
+        summary: 'Create a new category.',
+        operationId: 'createCategory',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'type'],
+                properties: {
+                  name: { type: 'string' },
+                  type: { type: 'string', enum: ['expense', 'income', 'transfer'] },
+                  parentCategoryId: { type: 'string', format: 'uuid' },
+                  color: { type: 'string' },
+                  icon: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Category created.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Category' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/categories/{categoryId}': {
+      get: {
+        tags: ['Categories'],
+        summary: 'Retrieve a category.',
+        operationId: 'getCategory',
+        parameters: [
+          {
+            name: 'categoryId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Category returned.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Category' }
+              }
+            }
+          },
+          '404': {
+            description: 'Category not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      patch: {
+        tags: ['Categories'],
+        summary: 'Update a category.',
+        operationId: 'updateCategory',
+        parameters: [
+          {
+            name: 'categoryId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  type: { type: 'string', enum: ['expense', 'income', 'transfer'] },
+                  parentCategoryId: { type: 'string', format: 'uuid' },
+                  color: { type: 'string' },
+                  icon: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Category updated.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Category' }
+              }
+            }
+          },
+          '404': {
+            description: 'Category not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        tags: ['Categories'],
+        summary: 'Delete a category.',
+        operationId: 'deleteCategory',
+        parameters: [
+          {
+            name: 'categoryId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '204': {
+            description: 'Category deleted.'
+          },
+          '409': {
+            description: 'Category cannot be deleted if referenced by transactions.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/budgets': {
+      get: {
+        tags: ['Budgets'],
+        summary: 'List budgets for the authenticated user.',
+        operationId: 'listBudgets',
+        responses: {
+          '200': {
+            description: 'Budgets returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Budget' }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        tags: ['Budgets'],
+        summary: 'Create a new budget.',
+        operationId: 'createBudget',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'amount', 'period', 'startDate', 'endDate'],
+                properties: {
+                  name: { type: 'string' },
+                  description: { type: 'string' },
+                  amount: monetaryAmountRef,
+                  period: {
+                    type: 'string',
+                    enum: ['weekly', 'monthly', 'quarterly', 'yearly', 'custom']
+                  },
+                  startDate: { type: 'string', format: 'date' },
+                  endDate: { type: 'string', format: 'date' },
+                  rollover: { type: 'boolean' },
+                  categories: {
+                    type: 'array',
+                    items: { type: 'string', format: 'uuid' }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Budget created.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Budget' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/budgets/{budgetId}': {
+      get: {
+        tags: ['Budgets'],
+        summary: 'Retrieve a budget.',
+        operationId: 'getBudget',
+        parameters: [
+          {
+            name: 'budgetId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Budget returned.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Budget' }
+              }
+            }
+          },
+          '404': {
+            description: 'Budget not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      patch: {
+        tags: ['Budgets'],
+        summary: 'Update a budget.',
+        operationId: 'updateBudget',
+        parameters: [
+          {
+            name: 'budgetId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  description: { type: 'string' },
+                  amount: monetaryAmountRef,
+                  period: {
+                    type: 'string',
+                    enum: ['weekly', 'monthly', 'quarterly', 'yearly', 'custom']
+                  },
+                  startDate: { type: 'string', format: 'date' },
+                  endDate: { type: 'string', format: 'date' },
+                  rollover: { type: 'boolean' },
+                  categories: {
+                    type: 'array',
+                    items: { type: 'string', format: 'uuid' }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Budget updated.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Budget' }
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        tags: ['Budgets'],
+        summary: 'Delete a budget.',
+        operationId: 'deleteBudget',
+        parameters: [
+          {
+            name: 'budgetId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '204': {
+            description: 'Budget deleted.'
+          }
+        }
+      }
+    },
+    '/api/sync/jobs': {
+      post: {
+        tags: ['Sync'],
+        summary: 'Trigger a manual sync job.',
+        operationId: 'triggerSyncJob',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['provider'],
+                properties: {
+                  provider: { type: 'string', example: 'plaid' },
+                  strategy: { type: 'string', enum: ['full', 'incremental'], default: 'incremental' },
+                  connectionId: { type: 'string', format: 'uuid' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '202': {
+            description: 'Sync job accepted.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SyncJob' }
+              }
+            }
+          }
+        }
+      },
+      get: {
+        tags: ['Sync'],
+        summary: 'List recent sync jobs.',
+        operationId: 'listSyncJobs',
+        parameters: [
+          { name: 'provider', in: 'query', schema: { type: 'string' } },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['queued', 'running', 'succeeded', 'failed'] } }
+        ],
+        responses: {
+          '200': {
+            description: 'Sync jobs returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/SyncJob' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/sync/jobs/{jobId}': {
+      get: {
+        tags: ['Sync'],
+        summary: 'Retrieve a sync job.',
+        operationId: 'getSyncJob',
+        parameters: [
+          {
+            name: 'jobId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Sync job returned.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SyncJob' }
+              }
+            }
+          },
+          '404': {
+            description: 'Sync job not found.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/sync/connections': {
+      get: {
+        tags: ['Sync'],
+        summary: 'List linked provider connections.',
+        operationId: 'listSyncConnections',
+        responses: {
+          '200': {
+            description: 'Connections returned.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    required: ['id', 'provider', 'status', 'createdAt'],
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      provider: { type: 'string', example: 'plaid' },
+                      status: { type: 'string', enum: ['linked', 'requires_action', 'revoked'] },
+                      lastSyncedAt: { ...timestampProperty, nullable: true },
+                      createdAt: timestampProperty
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  components: {
+    securitySchemes: {
+      bearerAuth
+    },
+    schemas: {
+      MonetaryAmount: monetaryAmount,
+      User: userSchema,
+      AuthTokens: authTokensSchema,
+      Transaction: transactionSchema,
+      Category: categorySchema,
+      Budget: budgetSchema,
+      SyncJob: syncJobSchema,
+      ErrorResponse: errorResponse
+    }
+  }
+};
+
+export default openApiDocument;
